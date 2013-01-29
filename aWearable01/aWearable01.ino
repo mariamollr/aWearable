@@ -9,7 +9,6 @@ int ledSX = 8;
 int ledCENT = 9;
 int ledDX = 10;
 
-// destination coordinates in degrees-decimal
 
 static void gpsdump(TinyGPS &gps);
 static bool feedgps();
@@ -103,10 +102,23 @@ static void print_int(unsigned long val, unsigned long invalid, int len)
     sz[len-1] = ' ';
   Serial.print(sz);
   feedgps();
+  //distance(val);
   
 }
 
-
+//Light if distance is less than...
+//static void distance(long val)
+//{
+  //if(val < 200) {//2000m)
+    //digitalWrite(ledDX,HIGH);
+    //delay(1000);
+  //}
+    //else if (val > 200) {
+     //digitalWrite(ledDX,LOW);
+     //delay(1000);
+    //}
+//}
+  
 
 static void print_float(float val, float invalid, int len, int prec)
 {
@@ -120,10 +132,12 @@ static void print_float(float val, float invalid, int len, int prec)
     for (int i=7; i<len; ++i)
         sz[i] = ' ';
     Serial.print(sz);
+    
   }
   else
   {
     Serial.print(val, prec);
+    
     int vi = abs((int)val);
     int flen = prec + (val < 0.0 ? 2 : 1);
     flen += vi >= 1000 ? 4 : vi >= 100 ? 3 : vi >= 10 ? 2 : 1;
@@ -153,14 +167,15 @@ static void print_date(TinyGPS &gps)
 }
 
 
-
 static void print_str(const char *str, int len)
 {
   int slen = strlen(str);
   for (int i=0; i<len; ++i)
     Serial.print(i<slen ? str[i] : ' ');
+    
   feedgps();
   blinking_led(*str);
+  
 }
 
 //led blinking in direction of target
@@ -187,8 +202,7 @@ static void blinking_led(char str)
 }
 
 
-  
-
+ 
 static bool feedgps()
 {
   while (nss.available())
