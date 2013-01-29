@@ -9,13 +9,16 @@ int ledSX = 8;
 int ledCENT = 9;
 int ledDX = 10;
 
+int distance_to_target = 0;
 
 static void gpsdump(TinyGPS &gps);
 static bool feedgps();
 static void print_float(float val, float invalid, int len, int prec);
 static void print_int(unsigned long val, unsigned long invalid, int len);
+static void print_distance(unsigned long val);
 static void print_date(TinyGPS &gps);
 static void print_str(const char *str, int len);
+static void print_str_target(const char *str, int len);
 
 void setup()
 {
@@ -74,9 +77,10 @@ static void gpsdump(TinyGPS &gps)
   print_float(gps.f_course(), TinyGPS::GPS_INVALID_F_ANGLE, 7, 2);
   print_float(gps.f_speed_kmph(), TinyGPS::GPS_INVALID_F_SPEED, 6, 2);
   print_str(gps.f_course() == TinyGPS::GPS_INVALID_F_ANGLE ? "*** " : TinyGPS::cardinal(gps.f_course()), 6);
-  print_int(flat == TinyGPS::GPS_INVALID_F_ANGLE ? 0UL : (unsigned long)TinyGPS::distance_between(flat, flon, TARGET_LAT, TARGET_LON) / 1, 0xFFFFFFFF, 9);
+  print_int(flat == TinyGPS::GPS_INVALID_F_ANGLE ? 0UL : (unsigned long)TinyGPS::distance_between(flat, flon, TARGET_LAT, TARGET_LON) / 1000, 0xFFFFFFFF, 9);
+  print_distance((unsigned long)TinyGPS::distance_between(flat, flon, TARGET_LAT, TARGET_LON) / 1000);
   print_float(flat == TinyGPS::GPS_INVALID_F_ANGLE ? 0.0 : TinyGPS::course_to(flat, flon,TARGET_LAT, TARGET_LON), TinyGPS::GPS_INVALID_F_ANGLE, 7, 2);
-  print_str(flat == TinyGPS::GPS_INVALID_F_ANGLE ? "*** " : TinyGPS::cardinal(TinyGPS::course_to(flat, flon, TARGET_LAT, TARGET_LON)), 6);
+  print_str_target(flat == TinyGPS::GPS_INVALID_F_ANGLE ? "*** " : TinyGPS::cardinal(TinyGPS::course_to(flat, flon, TARGET_LAT, TARGET_LON)), 6);
 
   gps.stats(&chars, &sentences, &failed);
   print_int(chars, 0xFFFFFFFF, 6);
@@ -86,6 +90,13 @@ static void gpsdump(TinyGPS &gps)
   
 }
 
+//Center light blinks if distance is less than 500km
+static void print_distance(unsigned long val)
+{
+  if(val < 500) {
+    digitalWrite(ledCENT,HIGH);
+  }
+}
 
 
 static void print_int(unsigned long val, unsigned long invalid, int len)
@@ -101,24 +112,10 @@ static void print_int(unsigned long val, unsigned long invalid, int len)
   if (len > 0) 
     sz[len-1] = ' ';
   Serial.print(sz);
+
   feedgps();
-  //distance(val);
   
 }
-
-//Light if distance is less than...
-//static void distance(long val)
-//{
-  //if(val < 200) {//2000m)
-    //digitalWrite(ledDX,HIGH);
-    //delay(1000);
-  //}
-    //else if (val > 200) {
-     //digitalWrite(ledDX,LOW);
-     //delay(1000);
-    //}
-//}
-  
 
 static void print_float(float val, float invalid, int len, int prec)
 {
@@ -174,31 +171,43 @@ static void print_str(const char *str, int len)
     Serial.print(i<slen ? str[i] : ' ');
     
   feedgps();
-  blinking_led(*str);
-  
+}
+
+//calls blinking_lights
+static void print_str_target(const char *str, int len)
+{
+  int slen = strlen(str);
+  for (int i=0; i<len; ++i)
+    Serial.print(i<slen ? str[i] : ' ');
+    
+  blinking_led(*str); 
 }
 
 //led blinking in direction of target
 static void blinking_led(char str) 
 {
-  if(str == 'N') {
+  if(str == 'E') {
     digitalWrite(ledCENT,HIGH);
-    delay(1000);
-    digitalWrite(ledCENT,LOW);
-    delay(1000);
+    //delay(1000);
+    //digitalWrite(ledCENT,LOW);
+    //delay(1000);
+    
   }
-   else if (str == 'E'){
+   else if (str == 'S'){
     digitalWrite(ledDX,HIGH);
-    delay(1000);
-    digitalWrite(ledDX,LOW);
-    delay(1000);
+    //delay(1000);
+    //digitalWrite(ledDX,LOW);
+    //delay(1000);
+    
    }
-    else if (str == 'S'){
+    else if (str == 'N'){
     digitalWrite(ledSX,HIGH);
-    delay(1000);
-    digitalWrite(ledSX,LOW);
-    delay(1000);
+    //delay(1000);
+    //digitalWrite(ledSX,LOW);
+    //delay(1000);
+    
     }
+    //Serial.print(str);
 }
 
 
