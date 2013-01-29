@@ -9,6 +9,8 @@ int ledSX = 8;
 int ledCENT = 9;
 int ledDX = 10;
 
+// destination coordinates in degrees-decimal
+
 static void gpsdump(TinyGPS &gps);
 static bool feedgps();
 static void print_float(float val, float invalid, int len, int prec);
@@ -33,7 +35,7 @@ void setup()
   Serial.print("Sizeof(gpsobject) = "); Serial.println(sizeof(TinyGPS));
   Serial.println();
   Serial.println("Sats HDOP Latitude Longitude Fix  Date       Time       Date Alt     Course Speed Card  Distance Course Card  Chars Sentences Checksum");
-  Serial.println("          (deg)    (deg)     Age                        Age  (m)     --- from GPS ----  ---- to London  ----  RX    RX        Fail");
+  Serial.println("          (deg)    (deg)     Age                        Age  (m)     --- from GPS ----  ---- to target  ----  RX    RX        Fail");
   Serial.println("--------------------------------------------------------------------------------------------------------------------------------------");
 }
 
@@ -50,6 +52,7 @@ void loop()
   }
   
   gpsdump(gps);
+ 
 }
 
 static void gpsdump(TinyGPS &gps)
@@ -57,7 +60,7 @@ static void gpsdump(TinyGPS &gps)
   float flat, flon;
   unsigned long age, date, time, chars = 0;
   unsigned short sentences = 0, failed = 0;
-  static const float LONDON_LAT = 51.508131, LONDON_LON = -0.128002;
+  static const float TARGET_LAT = 59.13131, TARGET_LON = 10.216595;
   
   print_int(gps.satellites(), TinyGPS::GPS_INVALID_SATELLITES, 5);
   print_int(gps.hdop(), TinyGPS::GPS_INVALID_HDOP, 5);
@@ -72,16 +75,19 @@ static void gpsdump(TinyGPS &gps)
   print_float(gps.f_course(), TinyGPS::GPS_INVALID_F_ANGLE, 7, 2);
   print_float(gps.f_speed_kmph(), TinyGPS::GPS_INVALID_F_SPEED, 6, 2);
   print_str(gps.f_course() == TinyGPS::GPS_INVALID_F_ANGLE ? "*** " : TinyGPS::cardinal(gps.f_course()), 6);
-  print_int(flat == TinyGPS::GPS_INVALID_F_ANGLE ? 0UL : (unsigned long)TinyGPS::distance_between(flat, flon, LONDON_LAT, LONDON_LON) / 1000, 0xFFFFFFFF, 9);
-  print_float(flat == TinyGPS::GPS_INVALID_F_ANGLE ? 0.0 : TinyGPS::course_to(flat, flon, 51.508131, -0.128002), TinyGPS::GPS_INVALID_F_ANGLE, 7, 2);
-  print_str(flat == TinyGPS::GPS_INVALID_F_ANGLE ? "*** " : TinyGPS::cardinal(TinyGPS::course_to(flat, flon, LONDON_LAT, LONDON_LON)), 6);
+  print_int(flat == TinyGPS::GPS_INVALID_F_ANGLE ? 0UL : (unsigned long)TinyGPS::distance_between(flat, flon, TARGET_LAT, TARGET_LON) / 1, 0xFFFFFFFF, 9);
+  print_float(flat == TinyGPS::GPS_INVALID_F_ANGLE ? 0.0 : TinyGPS::course_to(flat, flon,TARGET_LAT, TARGET_LON), TinyGPS::GPS_INVALID_F_ANGLE, 7, 2);
+  print_str(flat == TinyGPS::GPS_INVALID_F_ANGLE ? "*** " : TinyGPS::cardinal(TinyGPS::course_to(flat, flon, TARGET_LAT, TARGET_LON)), 6);
 
   gps.stats(&chars, &sentences, &failed);
   print_int(chars, 0xFFFFFFFF, 6);
   print_int(sentences, 0xFFFFFFFF, 10);
   print_int(failed, 0xFFFFFFFF, 9);
   Serial.println();
+  
 }
+
+
 
 static void print_int(unsigned long val, unsigned long invalid, int len)
 {
@@ -97,7 +103,10 @@ static void print_int(unsigned long val, unsigned long invalid, int len)
     sz[len-1] = ' ';
   Serial.print(sz);
   feedgps();
+  
 }
+
+
 
 static void print_float(float val, float invalid, int len, int prec)
 {
@@ -143,13 +152,42 @@ static void print_date(TinyGPS &gps)
   feedgps();
 }
 
+
+
 static void print_str(const char *str, int len)
 {
   int slen = strlen(str);
   for (int i=0; i<len; ++i)
     Serial.print(i<slen ? str[i] : ' ');
   feedgps();
+  blinking_led(*str);
 }
+
+//led blinking in direction of target
+static void blinking_led(char str) 
+{
+  if(str == 'N') {
+    digitalWrite(ledCENT,HIGH);
+    delay(1000);
+    digitalWrite(ledCENT,LOW);
+    delay(1000);
+  }
+   else if (str == 'E'){
+    digitalWrite(ledDX,HIGH);
+    delay(1000);
+    digitalWrite(ledDX,LOW);
+    delay(1000);
+   }
+    else if (str == 'S'){
+    digitalWrite(ledSX,HIGH);
+    delay(1000);
+    digitalWrite(ledSX,LOW);
+    delay(1000);
+    }
+}
+
+
+  
 
 static bool feedgps()
 {
